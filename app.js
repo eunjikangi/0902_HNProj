@@ -12,33 +12,50 @@ function getData(url) {
   return JSON.parse(ajax.response)
 }
 
-const newsFeed = getData(NEWS_URL)
-const ul = document.createElement('ul')
+function newsFeed() {
+  const newsFeedData = getData(NEWS_URL)
+  const newsList = []
 
-window.addEventListener('hashchange', function() {
-  // console.log(this.location.hash); 
-  // 현재 location의 hash값을 console에 출력.
-  const id = location.hash.substr(1);
-  const newsContent = getData(CONTENT_URL.replace('@id', id))
-  const title = this.document.createElement('h1')
-  
-  title.innerHTML = newsContent.title;
-  content.appendChild(title)
-})
+  newsList.push('<ul>')
+  for (let i = 0; i< 10; i++) 
+  {
+    newsList.push(`
+    <li>
+      <a href="#${newsFeedData[i].id}">
+        ${newsFeedData[i].title} (${newsFeedData[i].comments_count})
+      </a> 
+    </li>
+    `)
+  }
+  newsList.push('</ul>')
 
-for (let i = 0; i< 10; i++) 
-{
-  const div = document.createElement('div')
-  div.innerHTML = `
-  <li>
-    <a href="#${newsFeed[i].id}">
-      ${newsFeed[i].title} (${newsFeed[i].comments_count})
-    </a>
-  </li>
-  `
-
-  ul.appendChild(div.firstElementChild);
+  // join : 배열 안 문자열들을 하나의 문자열로 합쳐서 return해줌.
+  container.innerHTML = newsList.join('')
 }
 
-container.appendChild(ul)
-container.appendChild(content)
+function newsDetail() {
+  const id = location.hash.substr(1);
+  const newsContent = getData(CONTENT_URL.replace('@id', id))
+  
+  container.innerHTML = `
+    <h1>${newsContent.title}</h1>
+    <div>
+      <a href="#">목록으로</a>
+     </div>
+  `
+}
+
+function router() {
+  const routePath = location.hash;
+
+  if (routePath == '') {
+    newsFeed()
+  }
+  else {
+    newsDetail()
+  }
+}
+
+window.addEventListener('hashchange', router)
+
+newsFeed();
