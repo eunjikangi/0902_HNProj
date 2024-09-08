@@ -17,8 +17,20 @@ function getData(url) {
   return JSON.parse(ajax.response)
 }
 
+function makeFeed(feed) {
+  for (let i = 0; i< feed.length; i++)
+  {
+    feed[i].read = false;
+  }
+  return feed
+}
+
 function newsFeed() {
-  const newsFeedData = getData(NEWS_URL)
+  let newsFeedData = store.feeds
+  if (newsFeedData.length === 0){
+    newsFeedData = store.feeds = makeFeed(getData(NEWS_URL))
+  }
+
   const newsList = []
   let template = `
     <div class="bg-gray-600 min-h-screen">
@@ -52,7 +64,7 @@ function newsFeed() {
   for (let i = (store.currentPage - 1) * 10; i < store.currentPage * 10; i++) 
   {
     newsList.push(`
-      <div class="p-6 ${newsFeedData[i].read ? 'bg-red-500' : 'bg-white'} mt-6 rounded-lg shadow-md transition-colors duration-500 hover:bg-green-100">
+      <div class="p-6 ${newsFeedData[i].read ? 'bg-red-200' : 'bg-white'} mt-6 rounded-lg shadow-md transition-colors duration-500 hover:bg-green-100">
         <div class="flex">
           <div class="flex-auto">
             <a href="#/show/${newsFeedData[i].id}">${newsFeedData[i].title}</a>  
