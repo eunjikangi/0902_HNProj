@@ -38,34 +38,46 @@ const store: Store = {
   feeds: [],
 };
 
+function applyApiMixins(targetClass: any, baseClasses: any[]): void {
+  baseClasses.forEach(baseClass => {
+    Object.getOwnPropertyNames(baseClass.prototype).forEach(name => {
+      const descriptor = Object.getOwnPropertyDescriptor(baseClass.prototype, name);
+      
+      if (descriptor) {
+        Object.defineProperty(targetClass.prototype, name, descriptor);
+      }            
+    });
+  });
+}
+
 class api {
-  url: string;
-  ajax: XMLHttpRequest;
+  getRequest<AjaxResponse>(url: string): AjaxResponse {
+    const ajax: XMLHttpRequest = new XMLHttpRequest();
 
-  constructor(url: string) {
-    this.url = url;
-    this.ajax = new XMLHttpRequest();
-  }
-
-  protected getRequest<AjaxResponse>(): AjaxResponse {
-    this.ajax.open('GET', this.url, false);
-    this.ajax.send();
+    ajax.open('GET', url, false);
+    ajax.send();
   
-    return JSON.parse(this.ajax.response)
+    return JSON.parse(ajax.response)
   }
 }
 
-class NewFeedApi extends api{
+class NewFeedApi {
   getData(): NewsFeed[] {
-    return this.getRequest<NewsFeed[]>();
+    return this.getRequest<NewsFeed[]>(NEWS_URL);
   }
 }
 
-class NewDetailApi extends api{
-  getData(): NewsDetail {
-    return this.getRequest<NewsDetail>();
+class NewDetailApi {
+  getData(id: string): NewsDetail {
+    return this.getRequest<NewsDetail>(CONTENT_URL.replace('@id', id));
   }
 }
+
+interface NewFeedApi extends api {};
+interface NewDetailApi extends api {};
+
+applyApiMixins(NewFeedApi, [api]);
+applyApiMixins(NewDetailApi, [api]);
 
 function makeFeed(feed: NewsFeed[]): NewsFeed[] {
   // 타입 추론 : i는 type을 지정해주지 않아도, 코드 상 문맥으로 number로 type이 지정됨.
@@ -87,7 +99,7 @@ function updateView(html: string): void {
 
 function newsFeed(): void {
   let newsFeedData: NewsFeed[] = store.feeds
-  const api = new NewFeedApi(NEWS_URL);
+  const api = new NewFeedApi();
 
   if (newsFeedData.length === 0){
     newsFeedData = store.feeds = makeFeed(api.getData())
@@ -161,8 +173,8 @@ function newsFeed(): void {
 
 function newsDetail(): void {
   const id = location.hash.substr(7);
-  const api = new NewDetailApi(CONTENT_URL.replace('@id', id));
-  const newsContent = api.getData();
+  const api = new NewDetailApi();
+  const newsContent = api.getData(id);
   
   let template = `
   <div class="bg-gray-600 min-h-screen pb-8">
