@@ -29,7 +29,6 @@ type NewsComment = News & {
 }
 
 const container: HTMLElement | null = document.getElementById('root')
-const ajax: XMLHttpRequest = new XMLHttpRequest();
 const content = document.createElement('div')
 const NEWS_URL = 'https://api.hnpwa.com/v0/news/1.json'
 const CONTENT_URL = 'https://api.hnpwa.com/v0/item/@id.json'
@@ -39,12 +38,33 @@ const store: Store = {
   feeds: [],
 };
 
-// Generic
-function getData<AjaxResponse>(url: string): AjaxResponse {
-  ajax.open('GET', url, false);
-  ajax.send();
+class api {
+  url: string;
+  ajax: XMLHttpRequest;
 
-  return JSON.parse(ajax.response)
+  constructor(url: string) {
+    this.url = url;
+    this.ajax = new XMLHttpRequest();
+  }
+
+  protected getRequest<AjaxResponse>(): AjaxResponse {
+    this.ajax.open('GET', this.url, false);
+    this.ajax.send();
+  
+    return JSON.parse(this.ajax.response)
+  }
+}
+
+class NewFeedApi extends api{
+  getData(): NewsFeed[] {
+    return this.getRequest<NewsFeed[]>();
+  }
+}
+
+class NewDetailApi extends api{
+  getData(): NewsDetail {
+    return this.getRequest<NewsDetail>();
+  }
 }
 
 function makeFeed(feed: NewsFeed[]): NewsFeed[] {
@@ -67,8 +87,10 @@ function updateView(html: string): void {
 
 function newsFeed(): void {
   let newsFeedData: NewsFeed[] = store.feeds
+  const api = new NewFeedApi(NEWS_URL);
+
   if (newsFeedData.length === 0){
-    newsFeedData = store.feeds = makeFeed(getData<NewsFeed[]>(NEWS_URL))
+    newsFeedData = store.feeds = makeFeed(api.getData())
   }
 
   const newsList: string[] = []
@@ -138,10 +160,9 @@ function newsFeed(): void {
 }
 
 function newsDetail(): void {
-  console.log('newsDetail')
-
   const id = location.hash.substr(7);
-  const newsContent = getData<NewsDetail>(CONTENT_URL.replace('@id', id))
+  const api = new NewDetailApi(CONTENT_URL.replace('@id', id));
+  const newsContent = api.getData();
   
   let template = `
   <div class="bg-gray-600 min-h-screen pb-8">
