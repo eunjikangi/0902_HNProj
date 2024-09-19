@@ -3,15 +3,29 @@ type Store = {
   feeds: NewsFeed[];
 }
 
-type NewsFeed = {
+type News = {
   id: number;
-  comments_count: number;
+  time_ago: string;
+  title: string;
   url: string;
   user: string;
-  time_ago: string;
+  content: string;
+}
+
+// inter section
+type NewsFeed = News & {
+  comments_count: number;
   points: number;
-  title: string;
   read: boolean;
+}
+
+type NewsDetail = News & {
+  comments: NewsComment[];
+}
+
+type NewsComment = News & {
+  comments: NewsComment[];
+  level: number;
 }
 
 const container: HTMLElement | null = document.getElementById('root')
@@ -25,14 +39,15 @@ const store: Store = {
   feeds: [],
 };
 
-function getData(url) {
+// Generic
+function getData<AjaxResponse>(url: string): AjaxResponse {
   ajax.open('GET', url, false);
   ajax.send();
 
   return JSON.parse(ajax.response)
 }
 
-function makeFeed(feed) {
+function makeFeed(feed: NewsFeed[]): NewsFeed[] {
   // 타입 추론 : i는 type을 지정해주지 않아도, 코드 상 문맥으로 number로 type이 지정됨.
   for (let i = 0; i< feed.length; i++)
   {
@@ -41,7 +56,7 @@ function makeFeed(feed) {
   return feed
 }
 
-function updateView(html) {
+function updateView(html: string): void {
   if (container) {
     container.innerHTML = html
   }
@@ -50,13 +65,13 @@ function updateView(html) {
   }
 }
 
-function newsFeed() {
+function newsFeed(): void {
   let newsFeedData: NewsFeed[] = store.feeds
   if (newsFeedData.length === 0){
-    newsFeedData = store.feeds = makeFeed(getData(NEWS_URL))
+    newsFeedData = store.feeds = makeFeed(getData<NewsFeed[]>(NEWS_URL))
   }
 
-  const newsList = []
+  const newsList: string[] = []
   let template = `
     <div class="bg-gray-600 min-h-screen">
       <div class="bg-white text-xl">
@@ -88,7 +103,7 @@ function newsFeed() {
 
   for (let i = (store.currentPage - 1) * 10; i < store.currentPage * 10; i++) 
   {
-    newsList.push(`
+    newsList.push(`_
       <div class="p-6 ${newsFeedData[i].read ? 'bg-red-200' : 'bg-white'} mt-6 rounded-lg shadow-md transition-colors duration-500 hover:bg-green-100">
         <div class="flex">
           <div class="flex-auto">
@@ -116,17 +131,17 @@ function newsFeed() {
     }
 
   template = template.replace('{{__news_feed__}}', newsList.join(''))
-  template = template.replace('{{__prev_page__}}', store.currentPage > 1 ? store.currentPage - 1 : 1)
-  template = template.replace('{{__next_page__}}', bEndPage ? store.currentPage : store.currentPage + 1)
+  template = template.replace('{{__prev_page__}}', String(store.currentPage > 1 ? store.currentPage - 1 : 1))
+  template = template.replace('{{__next_page__}}', String(bEndPage ? store.currentPage : store.currentPage + 1))
 
   updateView(template)
 }
 
-function newsDetail() {
+function newsDetail(): void {
   console.log('newsDetail')
 
   const id = location.hash.substr(7);
-  const newsContent = getData(CONTENT_URL.replace('@id', id))
+  const newsContent = getData<NewsDetail>(CONTENT_URL.replace('@id', id))
   
   let template = `
   <div class="bg-gray-600 min-h-screen pb-8">
@@ -155,19 +170,23 @@ function newsDetail() {
   </div>
 `;
 
+template = template.replace('{{__comments__}}', makeComment(newsContent.comments))
+
 for(let i=0; i < store.feeds.length; i++) {
   if (store.feeds[i].id === Number(id)) {
     store.feeds[i].read = true;
     break;
   }
 }
+  updateView(template)
+}
 
-function makeComment(comments, called = 0) {
-  const commentString = [];
+function makeComment(comments: NewsComment[]): string {
+  const commentString: string[] = [];
 
   for(let i = 0; i < comments.length; i++) {
     commentString.push(`
-      <div style="padding-left: ${called * 40}px;" class="mt-4">
+      <div style="padding-left: ${comments[i].level * 40}px;" class="mt-4">
         <div class="text-gray-400">
           <i class="fa fa-sort-up mr-2"></i>
           <strong>${comments[i].user}</strong> ${comments[i].time_ago}
@@ -176,15 +195,11 @@ function makeComment(comments, called = 0) {
       </div>      
     `);
 
-      if (comments[i].comments.length > 0) {
-        commentString.push(makeComment(comments[i].comments, called + 1));
-      }
+    if (comments[i].comments.length > 0) {
+      commentString.push(makeComment(comments[i].comments));
     }
-    return commentString.join('');
-
   }
-
-  updateView(template)
+  return commentString.join('');
 }
 
 function router() {
