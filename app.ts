@@ -1,7 +1,7 @@
 type Store = {
   currentPage: number;
   feeds: NewsFeed[];
-}
+};
 
 type News = {
   id: number;
@@ -10,28 +10,28 @@ type News = {
   url: string;
   user: string;
   content: string;
-}
+};
 
 // inter section
 type NewsFeed = News & {
   comments_count: number;
   points: number;
   read: boolean;
-}
+};
 
 type NewsDetail = News & {
   comments: NewsComment[];
-}
+};
 
 type NewsComment = News & {
   comments: NewsComment[];
   level: number;
-}
+};
 
-const container: HTMLElement | null = document.getElementById('root')
-const content = document.createElement('div')
-const NEWS_URL = 'https://api.hnpwa.com/v0/news/1.json'
-const CONTENT_URL = 'https://api.hnpwa.com/v0/item/@id.json'
+const container: HTMLElement | null = document.getElementById("root");
+const content = document.createElement("div");
+const NEWS_URL = "https://api.hnpwa.com/v0/news/1.json";
+const CONTENT_URL = "https://api.hnpwa.com/v0/item/@id.json";
 
 const store: Store = {
   currentPage: 1,
@@ -39,13 +39,16 @@ const store: Store = {
 };
 
 function applyApiMixins(targetClass: any, baseClasses: any[]): void {
-  baseClasses.forEach(baseClass => {
-    Object.getOwnPropertyNames(baseClass.prototype).forEach(name => {
-      const descriptor = Object.getOwnPropertyDescriptor(baseClass.prototype, name);
-      
+  baseClasses.forEach((baseClass) => {
+    Object.getOwnPropertyNames(baseClass.prototype).forEach((name) => {
+      const descriptor = Object.getOwnPropertyDescriptor(
+        baseClass.prototype,
+        name
+      );
+
       if (descriptor) {
         Object.defineProperty(targetClass.prototype, name, descriptor);
-      }            
+      }
     });
   });
 }
@@ -54,10 +57,10 @@ class api {
   getRequest<AjaxResponse>(url: string): AjaxResponse {
     const ajax: XMLHttpRequest = new XMLHttpRequest();
 
-    ajax.open('GET', url, false);
+    ajax.open("GET", url, false);
     ajax.send();
-  
-    return JSON.parse(ajax.response)
+
+    return JSON.parse(ajax.response);
   }
 }
 
@@ -69,43 +72,41 @@ class NewFeedApi {
 
 class NewDetailApi {
   getData(id: string): NewsDetail {
-    return this.getRequest<NewsDetail>(CONTENT_URL.replace('@id', id));
+    return this.getRequest<NewsDetail>(CONTENT_URL.replace("@id", id));
   }
 }
 
-interface NewFeedApi extends api {};
-interface NewDetailApi extends api {};
+interface NewFeedApi extends api {}
+interface NewDetailApi extends api {}
 
 applyApiMixins(NewFeedApi, [api]);
 applyApiMixins(NewDetailApi, [api]);
 
 function makeFeed(feed: NewsFeed[]): NewsFeed[] {
   // 타입 추론 : i는 type을 지정해주지 않아도, 코드 상 문맥으로 number로 type이 지정됨.
-  for (let i = 0; i< feed.length; i++)
-  {
+  for (let i = 0; i < feed.length; i++) {
     feed[i].read = false;
   }
-  return feed
+  return feed;
 }
 
 function updateView(html: string): void {
   if (container) {
-    container.innerHTML = html
-  }
-  else {
-    console.error('최상위 컨테이너가 없어서 UI를 진행하지 못합니다.')
+    container.innerHTML = html;
+  } else {
+    console.error("최상위 컨테이너가 없어서 UI를 진행하지 못합니다.");
   }
 }
 
 function newsFeed(): void {
-  let newsFeedData: NewsFeed[] = store.feeds
+  let newsFeedData: NewsFeed[] = store.feeds;
   const api = new NewFeedApi();
 
-  if (newsFeedData.length === 0){
-    newsFeedData = store.feeds = makeFeed(api.getData())
+  if (newsFeedData.length === 0) {
+    newsFeedData = store.feeds = makeFeed(api.getData());
   }
 
-  const newsList: string[] = []
+  const newsList: string[] = [];
   let template = `
     <div class="bg-gray-600 min-h-screen">
       <div class="bg-white text-xl">
@@ -135,47 +136,61 @@ function newsFeed(): void {
     </div>
   `;
 
-  for (let i = (store.currentPage - 1) * 10; i < store.currentPage * 10; i++) 
-  {
+  for (let i = (store.currentPage - 1) * 10; i < store.currentPage * 10; i++) {
     newsList.push(`_
-      <div class="p-6 ${newsFeedData[i].read ? 'bg-red-200' : 'bg-white'} mt-6 rounded-lg shadow-md transition-colors duration-500 hover:bg-green-100">
+      <div class="p-6 ${
+        newsFeedData[i].read ? "bg-red-200" : "bg-white"
+      } mt-6 rounded-lg shadow-md transition-colors duration-500 hover:bg-green-100">
         <div class="flex">
           <div class="flex-auto">
-            <a href="#/show/${newsFeedData[i].id}">${newsFeedData[i].title}</a>  
+            <a href="#/show/${newsFeedData[i].id}">${
+      newsFeedData[i].title
+    }</a>  
           </div>
           <div class="text-center text-sm">
-            <div class="w-10 text-white bg-green-300 rounded-lg px-0 py-2">${newsFeedData[i].comments_count}</div>
+            <div class="w-10 text-white bg-green-300 rounded-lg px-0 py-2">${
+              newsFeedData[i].comments_count
+            }</div>
           </div>
         </div>
         <div class="flex mt-3">
           <div class="grid grid-cols-3 text-sm text-gray-500">
             <div><i class="fas fa-user mr-1"></i>${newsFeedData[i].user}</div>
-            <div><i class="fas fa-heart mr-1"></i>${newsFeedData[i].points}</div>
-            <div><i class="far fa-clock mr-1"></i>${newsFeedData[i].time_ago}</div>
+            <div><i class="fas fa-heart mr-1"></i>${
+              newsFeedData[i].points
+            }</div>
+            <div><i class="far fa-clock mr-1"></i>${
+              newsFeedData[i].time_ago
+            }</div>
           </div>  
         </div>
       </div>    
     `);
   }
 
-  let bEndPage = false
-  if (newsFeedData[store.currentPage * 10] == undefined)
-    {
-      bEndPage = true
-    }
+  let bEndPage = false;
+  if (newsFeedData[store.currentPage * 10] == undefined) {
+    bEndPage = true;
+  }
 
-  template = template.replace('{{__news_feed__}}', newsList.join(''))
-  template = template.replace('{{__prev_page__}}', String(store.currentPage > 1 ? store.currentPage - 1 : 1))
-  template = template.replace('{{__next_page__}}', String(bEndPage ? store.currentPage : store.currentPage + 1))
+  template = template.replace("{{__news_feed__}}", newsList.join(""));
+  template = template.replace(
+    "{{__prev_page__}}",
+    String(store.currentPage > 1 ? store.currentPage - 1 : 1)
+  );
+  template = template.replace(
+    "{{__next_page__}}",
+    String(bEndPage ? store.currentPage : store.currentPage + 1)
+  );
 
-  updateView(template)
+  updateView(template);
 }
 
 function newsDetail(): void {
   const id = location.hash.substr(7);
   const api = new NewDetailApi();
   const newsContent = api.getData(id);
-  
+
   let template = `
   <div class="bg-gray-600 min-h-screen pb-8">
     <div class="bg-white text-xl">
@@ -203,21 +218,24 @@ function newsDetail(): void {
   </div>
 `;
 
-template = template.replace('{{__comments__}}', makeComment(newsContent.comments))
+  template = template.replace(
+    "{{__comments__}}",
+    makeComment(newsContent.comments)
+  );
 
-for(let i=0; i < store.feeds.length; i++) {
-  if (store.feeds[i].id === Number(id)) {
-    store.feeds[i].read = true;
-    break;
+  for (let i = 0; i < store.feeds.length; i++) {
+    if (store.feeds[i].id === Number(id)) {
+      store.feeds[i].read = true;
+      break;
+    }
   }
-}
-  updateView(template)
+  updateView(template);
 }
 
 function makeComment(comments: NewsComment[]): string {
   const commentString: string[] = [];
 
-  for(let i = 0; i < comments.length; i++) {
+  for (let i = 0; i < comments.length; i++) {
     commentString.push(`
       <div style="padding-left: ${comments[i].level * 40}px;" class="mt-4">
         <div class="text-gray-400">
@@ -232,26 +250,24 @@ function makeComment(comments: NewsComment[]): string {
       commentString.push(makeComment(comments[i].comments));
     }
   }
-  return commentString.join('');
+  return commentString.join("");
 }
 
 function router() {
   const routePath = location.hash;
 
-  if (routePath == '') {
-    newsFeed()
-    console.log('Init')
-  }
-  else if (routePath.indexOf('#/page/') >= 0) {
+  if (routePath == "") {
+    newsFeed();
+    console.log("Init");
+  } else if (routePath.indexOf("#/page/") >= 0) {
     store.currentPage = Number(routePath.substr(7));
-    newsFeed()
-  }
-  else {
-    newsDetail()
+    newsFeed();
+  } else {
+    newsDetail();
   }
 }
 
-window.addEventListener('hashchange', router)
+window.addEventListener("hashchange", router);
 
 newsFeed();
-console.log('초기화')
+console.log("초기화");
